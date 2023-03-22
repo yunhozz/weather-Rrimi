@@ -20,19 +20,17 @@ public class SchedulerConfig implements SchedulingConfigurer {
     private final ThreadPoolTaskScheduler taskScheduler;
     private final RestTemplate restTemplate;
 
-    public SchedulerConfig(ThreadPoolTaskScheduler taskScheduler, RestTemplate restTemplate) {
+    public SchedulerConfig() {
+        restTemplate = new RestTemplate();
+        taskScheduler = new ThreadPoolTaskScheduler();
+        taskScheduler.setPoolSize(10);
         taskScheduler.setErrorHandler(throwable -> {
             StringWriter sw = new StringWriter();
             throwable.printStackTrace(new PrintWriter(sw));
-
             alertErrorByEmail(sw); // 이메일 알림
 //            alertErrorBySlack(template, sw); // 슬랙 알림
         });
-
         taskScheduler.initialize();
-
-        this.taskScheduler = taskScheduler;
-        this.restTemplate = restTemplate;
     }
 
     @Override
