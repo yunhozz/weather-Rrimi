@@ -1,8 +1,8 @@
 package com.batchserver.config;
 
-import com.batchserver.dto.MailRequestDto;
 import com.batchserver.RegionRepository;
 import com.batchserver.domain.Region;
+import com.batchserver.dto.MailRequestDto;
 import com.batchserver.dto.WeatherRequestDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,16 +20,18 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -89,15 +91,13 @@ public class BatchConfig {
                                     "&" + URLEncoder.encode("numOfRows", StandardCharsets.UTF_8) + "=" + URLEncoder.encode("60", StandardCharsets.UTF_8) + // 한 페이지 결과 수
                                     "&" + URLEncoder.encode("dataType", StandardCharsets.UTF_8) + "=" + URLEncoder.encode("json", StandardCharsets.UTF_8); // 데이터 타입
 
-                            HttpRequest httpRequest = HttpRequest.newBuilder()
-                                    .uri(URI.create(str))
-                                    .header("accept", "application/json")
-                                    .method("GET", HttpRequest.BodyPublishers.noBody())
-                                    .build();
-                            HttpResponse<String> httpResponse = HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                            HttpHeaders httpHeaders = new HttpHeaders();
+                            httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON));
+                            HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+                            ResponseEntity<String> httpResponse = restTemplate.exchange(URI.create(str), HttpMethod.GET, httpEntity, new ParameterizedTypeReference<>() {});
 
-                            if (!httpResponse.body().isEmpty()) {
-                                JSONObject jsonObject = (JSONObject) jsonParser.parse(httpResponse.body()); // 날씨 데이터
+                            if (!httpResponse.getBody().isBlank()) {
+                                JSONObject jsonObject = (JSONObject) jsonParser.parse(httpResponse.getBody()); // 날씨 데이터
                                 JSONObject response = (JSONObject) jsonObject.get("response");
                                 JSONObject body = (JSONObject) response.get("body");
                                 JSONObject items = (JSONObject) body.get("items");
@@ -138,7 +138,7 @@ public class BatchConfig {
 
                         restTemplate.postForEntity("http://localhost:8000/api/query/weathers", weatherRequestDtoList, String.class);
 
-                    } catch (IOException | ParseException e) {
+                    } catch (ParseException e) {
                         log.error(e.getMessage());
                         contribution.setExitStatus(ExitStatus.FAILED);
                     }

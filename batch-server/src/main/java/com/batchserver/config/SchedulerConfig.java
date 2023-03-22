@@ -20,8 +20,8 @@ public class SchedulerConfig implements SchedulingConfigurer {
     private final ThreadPoolTaskScheduler taskScheduler;
     private final RestTemplate restTemplate;
 
-    public SchedulerConfig() {
-        restTemplate = new RestTemplate();
+    public SchedulerConfig(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
         taskScheduler = new ThreadPoolTaskScheduler();
         taskScheduler.setPoolSize(10);
         taskScheduler.setErrorHandler(throwable -> {
