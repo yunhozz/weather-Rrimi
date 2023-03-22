@@ -18,20 +18,21 @@ import java.net.URI;
 public class SchedulerConfig implements SchedulingConfigurer {
 
     private final ThreadPoolTaskScheduler taskScheduler;
+    private final RestTemplate restTemplate;
 
-    public SchedulerConfig() {
-        taskScheduler = new ThreadPoolTaskScheduler();
-        taskScheduler.setPoolSize(10);
+    public SchedulerConfig(ThreadPoolTaskScheduler taskScheduler, RestTemplate restTemplate) {
         taskScheduler.setErrorHandler(throwable -> {
-            RestTemplate template = new RestTemplate();
             StringWriter sw = new StringWriter();
             throwable.printStackTrace(new PrintWriter(sw));
 
-            alertErrorByEmail(template, sw); // 이메일 알림
+            alertErrorByEmail(sw); // 이메일 알림
 //            alertErrorBySlack(template, sw); // 슬랙 알림
         });
 
         taskScheduler.initialize();
+
+        this.taskScheduler = taskScheduler;
+        this.restTemplate = restTemplate;
     }
 
     @Override
@@ -39,15 +40,15 @@ public class SchedulerConfig implements SchedulingConfigurer {
         taskRegistrar.setScheduler(taskScheduler);
     }
 
-    private void alertErrorByEmail(RestTemplate template, StringWriter sw) {
+    private void alertErrorByEmail(StringWriter sw) {
         MailRequestDto mailRequestDto = new MailRequestDto("qkrdbsgh1121@naver.com", sw.toString());
-        template.postForEntity("http://localhost:8000/api/alerts/mail", mailRequestDto, String.class);
+        restTemplate.postForEntity("http://localhost:8000/api/alerts/mail", mailRequestDto, String.class);
     }
 
-    private void alertErrorBySlack(RestTemplate template, StringWriter sw) {
+    private void alertErrorBySlack(StringWriter sw) {
         URI uri = UriComponentsBuilder.fromUriString("http://localhost:8000/api/alerts/slack")
                 .queryParam("errMsg", sw.toString())
                 .build().toUri();
-        template.postForEntity(uri, null, String.class);
+        restTemplate.postForEntity(uri, null, String.class);
     }
 }

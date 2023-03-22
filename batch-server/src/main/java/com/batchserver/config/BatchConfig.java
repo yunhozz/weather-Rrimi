@@ -44,6 +44,7 @@ public class BatchConfig {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager platformTransactionManager;
     private final RegionRepository regionRepository;
+    private final RestTemplate restTemplate;
 
     @Value("${app.weather.secretKey}")
     private String secretKey;
@@ -68,6 +69,8 @@ public class BatchConfig {
                     String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddkkmm"));
                     String nowDate = now.substring(0, 8); // 현재 날짜
                     String nowTime = now.substring(8); // 현재 시각
+
+                    JSONParser jsonParser = new JSONParser();
                     List<WeatherRequestDto> weatherRequestDtoList = new ArrayList<>();
 
                     // id 값이 1 ~ 228 인 region 에 관한 날씨 정보 저장
@@ -94,7 +97,6 @@ public class BatchConfig {
                             HttpResponse<String> httpResponse = HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
                             if (!httpResponse.body().isEmpty()) {
-                                JSONParser jsonParser = new JSONParser();
                                 JSONObject jsonObject = (JSONObject) jsonParser.parse(httpResponse.body()); // 날씨 데이터
                                 JSONObject response = (JSONObject) jsonObject.get("response");
                                 JSONObject body = (JSONObject) response.get("body");
@@ -134,8 +136,7 @@ public class BatchConfig {
                             }
                         }
 
-                        RestTemplate template = new RestTemplate();
-                        template.postForEntity("http://localhost:8000/api/query/weathers", weatherRequestDtoList, String.class);
+                        restTemplate.postForEntity("http://localhost:8000/api/query/weathers", weatherRequestDtoList, String.class);
 
                     } catch (IOException | ParseException e) {
                         log.error(e.getMessage());
@@ -152,24 +153,23 @@ public class BatchConfig {
     public Step alertErrorStep() {
         return new StepBuilder("alertErrorStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
-                    RestTemplate template = new RestTemplate();
-                    alertErrorByEmail(template); // 이메일 알림
-//                    alertErrorBySlack(template); // 슬랙 알림
+                    alertErrorByEmail(); // 이메일 알림
+//                    alertErrorBySlack(); // 슬랙 알림
                     return RepeatStatus.FINISHED;
 
                 }, platformTransactionManager)
                 .build();
     }
 
-    private void alertErrorByEmail(RestTemplate template) {
+    private void alertErrorByEmail() {
         MailRequestDto mailRequestDto = new MailRequestDto("qkrdbsgh1121@naver.com", "배치 실행 도중 문제가 발생하였습니다. 로그를 확인해주세요.");
-        template.postForEntity("http://localhost:8000/api/alerts/mail", mailRequestDto, String.class);
+        restTemplate.postForEntity("http://localhost:8000/api/alerts/mail", mailRequestDto, String.class);
     }
 
-    private void alertErrorBySlack(RestTemplate template) {
+    private void alertErrorBySlack() {
         URI uri = UriComponentsBuilder.fromUriString("http://localhost:8000/api/alerts/slack")
                 .queryParam("errMsg", "배치 실행 도중 문제가 발생하였습니다. 로그를 확인해주세요.")
                 .build().toUri();
-        template.postForEntity(uri, null, String.class);
+        restTemplate.postForEntity(uri, null, String.class);
     }
 }
