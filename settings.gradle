@@ -1,0 +1,6 @@
+rootProject.name = 'weather-api'
+include 'eureka-server'
+include 'api-gateway'
+include 'batch-server'
+include 'inquiry-service'
+include 'alert-service'

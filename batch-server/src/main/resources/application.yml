@@ -1,0 +1,26 @@
+eureka:
+  client:
+    service-url:
+      default-zone: http://localhost:8761/eureka
+
+server:
+  port: 8090
+
+spring:
+  application:
+    name: batch-server
+  profiles:
+    include: dev
+
+logging:
+  pattern:
+    file: "%-4relative [%thread] %-5level %logger{35} - %msg%n"
+  level:
+    root: info
+    org.hibernate.SQL: debug
+  file:
+    path: /Users/air/Desktop/project/weather-api/batch-server/src/main/resources/static/log/
+  logback:
+    rolling policy:
+      max-file-size: 500MB
+      max-history: 7
