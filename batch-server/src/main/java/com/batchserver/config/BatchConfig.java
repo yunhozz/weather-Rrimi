@@ -27,6 +27,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -58,6 +59,9 @@ public class BatchConfig {
                     .on("FAILED")
                     .to(alertErrorStep())
                 .from(getWeatherInfoStep())
+                    .on("UNKNOWN")
+                    .stopAndRestart(getWeatherInfoStep())
+                .from(getWeatherInfoStep())
                     .on("*")
                     .end()
                 .end()
@@ -76,69 +80,83 @@ public class BatchConfig {
                     List<WeatherRequestDto> weatherRequestDtoList = new ArrayList<>();
 
                     // id 값이 1 ~ 228 인 region 에 관한 날씨 정보 저장
-                    try {
-                        for (long id = 1; id <= 228; id++) {
-                            log.info("id = " + id);
-                            Region region = regionRepository.getReferenceById(id);
+                    for (long id = 1; id <= 228; id++) {
+                        log.info("id = " + id);
+                        Region region = regionRepository.getReferenceById(id);
 
-                            // 단기 예보 조회
-                            String str = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst" +
-                                    "?" + URLEncoder.encode("serviceKey", StandardCharsets.UTF_8) + "=" + secretKey +
-                                    "&" + URLEncoder.encode("base_date", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(nowDate, StandardCharsets.UTF_8) + // 조회하고 싶은 날짜
-                                    "&" + URLEncoder.encode("base_time", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(nowTime, StandardCharsets.UTF_8) + // 조회하고 싶은 시간
-                                    "&" + URLEncoder.encode("nx", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(String.valueOf(region.getNx()), StandardCharsets.UTF_8) + // 경도
-                                    "&" + URLEncoder.encode("ny", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(String.valueOf(region.getNy()), StandardCharsets.UTF_8) + // 위도
-                                    "&" + URLEncoder.encode("numOfRows", StandardCharsets.UTF_8) + "=" + URLEncoder.encode("60", StandardCharsets.UTF_8) + // 한 페이지 결과 수
-                                    "&" + URLEncoder.encode("dataType", StandardCharsets.UTF_8) + "=" + URLEncoder.encode("json", StandardCharsets.UTF_8); // 데이터 타입
+                        // 단기 예보 조회
+                        String str = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst" +
+                                "?" + URLEncoder.encode("serviceKey", StandardCharsets.UTF_8) + "=" + secretKey +
+                                "&" + URLEncoder.encode("base_date", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(nowDate, StandardCharsets.UTF_8) + // 조회하고 싶은 날짜
+                                "&" + URLEncoder.encode("base_time", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(nowTime, StandardCharsets.UTF_8) + // 조회하고 싶은 시간
+                                "&" + URLEncoder.encode("nx", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(String.valueOf(region.getNx()), StandardCharsets.UTF_8) + // 경도
+                                "&" + URLEncoder.encode("ny", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(String.valueOf(region.getNy()), StandardCharsets.UTF_8) + // 위도
+                                "&" + URLEncoder.encode("numOfRows", StandardCharsets.UTF_8) + "=" + URLEncoder.encode("60", StandardCharsets.UTF_8) + // 한 페이지 결과 수
+                                "&" + URLEncoder.encode("dataType", StandardCharsets.UTF_8) + "=" + URLEncoder.encode("json", StandardCharsets.UTF_8); // 데이터 타입
 
-                            HttpHeaders httpHeaders = new HttpHeaders();
-                            httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON));
-                            HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
-                            ResponseEntity<String> httpResponse = restTemplate.exchange(URI.create(str), HttpMethod.GET, httpEntity, new ParameterizedTypeReference<>() {});
+                        HttpHeaders httpHeaders = new HttpHeaders();
+                        httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON));
+                        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+                        ResponseEntity<String> httpResponse = restTemplate.exchange(URI.create(str), HttpMethod.GET, httpEntity, new ParameterizedTypeReference<>() {});
 
-                            if (!httpResponse.getBody().isBlank()) {
-                                JSONObject jsonObject = (JSONObject) jsonParser.parse(httpResponse.getBody()); // 날씨 데이터
-                                JSONObject response = (JSONObject) jsonObject.get("response");
-                                JSONObject body = (JSONObject) response.get("body");
-                                JSONObject items = (JSONObject) body.get("items");
-                                JSONArray item = (JSONArray) items.get("item");
+                        // 날씨 정보를 받지 못했을 때
+                        if (!httpResponse.hasBody()) {
+                            log.error("날씨 정보가 null 입니다.");
+                            contribution.setExitStatus(ExitStatus.UNKNOWN);
+                            return RepeatStatus.FINISHED;
+                        }
 
-                                String baseDate = (String) ((JSONObject) item.get(0)).get("baseDate");
-                                String baseTime = (String) ((JSONObject) item.get(0)).get("baseTime");
-                                double temperature = 0;
-                                double rainfall = 0;
-                                double humid = 0;
+                        JSONObject response = null;
 
-                                for (Object data : item) {
-                                    String category = (String) ((JSONObject) data).get("category");
-                                    double obsrValue = Double.parseDouble(String.valueOf(((JSONObject) data).get("obsrValue")));
+                        try {
+                            JSONObject jsonObject = (JSONObject) jsonParser.parse(httpResponse.getBody()); // 날씨 데이터
+                            response = (JSONObject) jsonObject.get("response");
+                        // 파싱에 실패했을 때
+                        } catch (ParseException e) {
+                            log.error(e.getMessage());
+                            contribution.setExitStatus(ExitStatus.FAILED);
+                        }
 
-                                    switch (category) {
-                                        case "T1H" -> temperature = obsrValue;
-                                        case "RN1" -> rainfall = obsrValue;
-                                        case "REH" -> humid = obsrValue;
-                                    }
-                                }
+                        JSONObject body = (JSONObject) response.get("body");
+                        JSONObject items = (JSONObject) body.get("items");
+                        JSONArray item = (JSONArray) items.get("item");
 
-                                WeatherRequestDto weatherRequestDto = WeatherRequestDto.builder()
-                                        .parentRegion(region.getParentRegion())
-                                        .childRegion(region.getChildRegion())
-                                        .nx(region.getNx())
-                                        .ny(region.getNy())
-                                        .baseDate(baseDate)
-                                        .baseTime(baseTime)
-                                        .temperature(temperature)
-                                        .rainfall(rainfall)
-                                        .humid(humid)
-                                        .build();
+                        String baseDate = (String) ((JSONObject) item.get(0)).get("baseDate");
+                        String baseTime = (String) ((JSONObject) item.get(0)).get("baseTime");
+                        double temperature = 0;
+                        double rainfall = 0;
+                        double humid = 0;
 
-                                weatherRequestDtoList.add(weatherRequestDto);
+                        for (Object data : item) {
+                            String category = (String) ((JSONObject) data).get("category");
+                            double obsrValue = Double.parseDouble(String.valueOf(((JSONObject) data).get("obsrValue")));
+
+                            switch (category) {
+                                case "T1H" -> temperature = obsrValue;
+                                case "RN1" -> rainfall = obsrValue;
+                                case "REH" -> humid = obsrValue;
                             }
                         }
 
-                        restTemplate.postForEntity("http://localhost:8000/api/query/weathers", weatherRequestDtoList, String.class);
+                        WeatherRequestDto weatherRequestDto = WeatherRequestDto.builder()
+                                .parentRegion(region.getParentRegion())
+                                .childRegion(region.getChildRegion())
+                                .nx(region.getNx())
+                                .ny(region.getNy())
+                                .baseDate(baseDate)
+                                .baseTime(baseTime)
+                                .temperature(temperature)
+                                .rainfall(rainfall)
+                                .humid(humid)
+                                .build();
 
-                    } catch (ParseException e) {
+                        weatherRequestDtoList.add(weatherRequestDto);
+                    }
+
+                    try {
+                        restTemplate.postForEntity("http://localhost:8000/api/query/weathers", weatherRequestDtoList, String.class);
+                    // 클라이언트 응답이 없을 때
+                    } catch (RestClientException e) {
                         log.error(e.getMessage());
                         contribution.setExitStatus(ExitStatus.FAILED);
                     }
@@ -172,4 +190,6 @@ public class BatchConfig {
                 .build().toUri();
         restTemplate.postForEntity(uri, null, String.class);
     }
+
+    // TODO: 2023/03/24 날씨 예측 정보 카카오톡으로 매시간 전송
 }
