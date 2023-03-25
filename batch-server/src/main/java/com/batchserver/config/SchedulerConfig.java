@@ -28,7 +28,7 @@ public class SchedulerConfig implements SchedulingConfigurer {
             StringWriter sw = new StringWriter();
             throwable.printStackTrace(new PrintWriter(sw));
             alertErrorByEmail(sw); // 이메일 알림
-//            alertErrorBySlack(template, sw); // 슬랙 알림
+//            alertErrorBySlack(sw); // 슬랙 알림
         });
         taskScheduler.initialize();
     }
