@@ -4,8 +4,6 @@ import com.inquiryservice.InquiryService;
 import com.inquiryservice.common.enums.Period;
 import com.inquiryservice.dto.WeatherRequestDto;
 import com.inquiryservice.dto.WeatherResponseDto;
-import com.inquiryservice.dto.RegionNameRequestDto;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,15 +25,14 @@ public class InquiryController {
     private final InquiryService inquiryService;
 
     @GetMapping("/weather/latest")
-    public ResponseEntity<WeatherResponseDto> getLatestWeatherInfo(@Valid @RequestBody RegionNameRequestDto regionNameRequestDto) {
-        WeatherResponseDto weatherResponseDto = inquiryService.findLatestWeatherInfoByRegionName(regionNameRequestDto);
+    public ResponseEntity<WeatherResponseDto> getLatestWeatherInfo(@RequestParam(name = "p") String parentRegion, @RequestParam(name = "c") String childRegion) {
+        WeatherResponseDto weatherResponseDto = inquiryService.findLatestWeatherInfoByRegionName(parentRegion, childRegion);
         return ResponseEntity.ok(weatherResponseDto);
     }
 
     @GetMapping("/weather/list")
     public ResponseEntity<List<WeatherResponseDto>> getWeatherInfoListByPeriod(
-            @Valid @RequestBody RegionNameRequestDto regionNameRequestDto,
-            @RequestParam(required = false, defaultValue = "DAY") Period period
+            @RequestParam(name = "p") String parentRegion, @RequestParam(name = "c") String childRegion, @RequestParam(required = false, defaultValue = "DAY") Period period
     ) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime threshold = null;
@@ -46,7 +43,7 @@ public class InquiryController {
             case MONTH -> threshold = now.minusMonths(1);
         }
 
-        List<WeatherResponseDto> weatherResponseDtoList = inquiryService.findWeatherInfoAfterThresholdByRegionName(regionNameRequestDto, threshold);
+        List<WeatherResponseDto> weatherResponseDtoList = inquiryService.findWeatherInfoAfterThresholdByRegionName(parentRegion, childRegion, threshold);
         return ResponseEntity.ok(weatherResponseDtoList);
     }
 
