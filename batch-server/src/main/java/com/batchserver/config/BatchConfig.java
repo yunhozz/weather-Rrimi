@@ -98,14 +98,6 @@ public class BatchConfig {
                         httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON));
                         HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
                         ResponseEntity<String> httpResponse = restTemplate.exchange(URI.create(str), HttpMethod.GET, httpEntity, new ParameterizedTypeReference<>() {});
-
-                        // 날씨 정보를 받지 못했을 때
-                        if (!httpResponse.hasBody()) {
-                            log.error("날씨 정보가 null 입니다.");
-                            contribution.setExitStatus(ExitStatus.UNKNOWN);
-                            return RepeatStatus.FINISHED;
-                        }
-
                         JSONObject response = null;
 
                         try {
@@ -115,6 +107,11 @@ public class BatchConfig {
                         } catch (ParseException e) {
                             log.error(e.getMessage());
                             contribution.setExitStatus(ExitStatus.FAILED);
+                        // 데이터가 null 일 때
+                        } catch (NullPointerException e) {
+                            log.error(e.getMessage());
+                            contribution.setExitStatus(ExitStatus.UNKNOWN);
+                            return RepeatStatus.FINISHED;
                         }
 
                         JSONObject body = (JSONObject) response.get("body");
