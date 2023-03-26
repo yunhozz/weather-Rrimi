@@ -56,10 +56,10 @@ public class BatchConfig {
     public Job weatherJob() {
         return new JobBuilder("weatherJob", jobRepository)
                 .start(getWeatherInfoStep())
-                    .on("FAILED")
+                    .on("UNKNOWN")
                     .to(alertErrorStep())
                 .from(getWeatherInfoStep())
-                    .on("UNKNOWN")
+                    .on("FAILED")
                     .stopAndRestart(getWeatherInfoStep())
                 .from(getWeatherInfoStep())
                     .on("*")
@@ -107,31 +107,31 @@ public class BatchConfig {
                         } catch (ParseException e) {
                             log.error(e.getMessage());
                             contribution.setExitStatus(ExitStatus.FAILED);
-                        // 데이터가 null 일 때
-                        } catch (NullPointerException e) {
-                            log.error(e.getMessage());
-                            contribution.setExitStatus(ExitStatus.UNKNOWN);
-                            return RepeatStatus.FINISHED;
                         }
 
-                        JSONObject body = (JSONObject) response.get("body");
-                        JSONObject items = (JSONObject) body.get("items");
-                        JSONArray item = (JSONArray) items.get("item");
+                        String baseDate = null;
+                        String baseTime = null;
+                        double temperature = -100;
+                        double rainfall = -1;
+                        double humid = -1;
 
-                        String baseDate = (String) ((JSONObject) item.get(0)).get("baseDate");
-                        String baseTime = (String) ((JSONObject) item.get(0)).get("baseTime");
-                        double temperature = 0;
-                        double rainfall = 0;
-                        double humid = 0;
+                        if (response != null) {
+                            JSONObject body = (JSONObject) response.get("body");
+                            JSONObject items = (JSONObject) body.get("items");
+                            JSONArray item = (JSONArray) items.get("item");
 
-                        for (Object data : item) {
-                            String category = (String) ((JSONObject) data).get("category");
-                            double obsrValue = Double.parseDouble(String.valueOf(((JSONObject) data).get("obsrValue")));
+                            baseDate = (String) ((JSONObject) item.get(0)).get("baseDate");
+                            baseTime = (String) ((JSONObject) item.get(0)).get("baseTime");
 
-                            switch (category) {
-                                case "T1H" -> temperature = obsrValue;
-                                case "RN1" -> rainfall = obsrValue;
-                                case "REH" -> humid = obsrValue;
+                            for (Object data : item) {
+                                String category = (String) ((JSONObject) data).get("category");
+                                double obsrValue = Double.parseDouble(String.valueOf(((JSONObject) data).get("obsrValue")));
+
+                                switch (category) {
+                                    case "T1H" -> temperature = obsrValue;
+                                    case "RN1" -> rainfall = obsrValue;
+                                    case "REH" -> humid = obsrValue;
+                                }
                             }
                         }
 
@@ -155,7 +155,7 @@ public class BatchConfig {
                     // 클라이언트 응답이 없을 때
                     } catch (RestClientException e) {
                         log.error(e.getMessage());
-                        contribution.setExitStatus(ExitStatus.FAILED);
+                        contribution.setExitStatus(ExitStatus.UNKNOWN);
                     }
 
                     return RepeatStatus.FINISHED;
