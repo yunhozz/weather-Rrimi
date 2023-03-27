@@ -67,6 +67,11 @@ project(':batch-server') {
 	jar { enabled = false }
 }
 
+project(':auth-service') {
+	bootJar { enabled = true }
+	jar { enabled = false }
+}
+
 project(':inquiry-service') {
 	bootJar { enabled = true }
 	jar { enabled = false }
