@@ -19,7 +19,7 @@ logging:
     root: info
     org.hibernate.SQL: debug
   file:
-    path: /Users/air/Desktop/project/weather-api/batch-server/src/main/resources/static/log/
+    path: /Users/air/Desktop/project/weather-api/auth-service/src/main/resources/static/log/
   logback:
     rolling policy:
       max-file-size: 500MB
