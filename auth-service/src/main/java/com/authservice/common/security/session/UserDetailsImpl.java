@@ -1,4 +1,4 @@
-package com.authservice.config.security.session;
+package com.authservice.common.security.session;
 
 import com.authservice.common.enums.Provider;
 import com.authservice.common.enums.Role;

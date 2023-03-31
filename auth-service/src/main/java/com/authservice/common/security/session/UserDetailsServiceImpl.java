@@ -1,4 +1,4 @@
-package com.authservice.config.security.session;
+package com.authservice.common.security.session;
 
 import com.authservice.domain.User;
 import com.authservice.infra.UserRepository;

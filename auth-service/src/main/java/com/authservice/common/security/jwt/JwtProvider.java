@@ -1,8 +1,8 @@
-package com.authservice.config.security.jwt;
+package com.authservice.common.security.jwt;
 
 import com.authservice.common.enums.Role;
 import com.authservice.common.enums.TokenType;
-import com.authservice.config.security.session.UserDetailsServiceImpl;
+import com.authservice.common.security.session.UserDetailsServiceImpl;
 import com.authservice.dto.response.JwtTokenResponseDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;

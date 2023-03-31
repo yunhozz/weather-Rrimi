@@ -1,4 +1,4 @@
-package com.authservice.config.security.jwt;
+package com.authservice.common.security.jwt;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

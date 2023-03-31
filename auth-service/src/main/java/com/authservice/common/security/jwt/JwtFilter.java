@@ -1,4 +1,4 @@
-package com.authservice.config.security.jwt;
+package com.authservice.common.security.jwt;
 
 import io.jsonwebtoken.lang.Strings;
 import jakarta.servlet.FilterChain;
