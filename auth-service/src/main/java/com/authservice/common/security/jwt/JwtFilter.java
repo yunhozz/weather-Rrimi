@@ -1,5 +1,6 @@
 package com.authservice.common.security.jwt;
 
+import com.authservice.application.provider.JwtProvider;
 import io.jsonwebtoken.lang.Strings;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

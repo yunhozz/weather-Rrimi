@@ -1,4 +1,4 @@
-package com.authservice.common.security.jwt;
+package com.authservice.application.provider;
 
 import com.authservice.common.enums.Role;
 import com.authservice.common.enums.TokenType;
@@ -31,10 +31,10 @@ import java.util.stream.Collectors;
 public class JwtProvider {
 
     @Value("${app.jwt.accessTime}")
-    private Long accessTokenValidTime;
+    private Long accessTokenValidTimeMillis;
 
     @Value("${app.jwt.refreshTime}")
-    private Long refreshTokenValidTime;
+    private Long refreshTokenValidTimeMillis;
 
     @Value("${app.jwt.secret}")
     private String secret;
@@ -51,7 +51,7 @@ public class JwtProvider {
 
         String accessToken = createAccessToken(claims, now);
         String refreshToken = createRefreshToken(claims, now);
-        return new JwtTokenResponseDto(accessToken, refreshToken, refreshTokenValidTime);
+        return new JwtTokenResponseDto(accessToken, refreshToken, refreshTokenValidTimeMillis);
     }
 
     public Authentication getAuthentication(String token) {
@@ -73,12 +73,12 @@ public class JwtProvider {
 
     private String createAccessToken(Claims claims, Date now) {
         claims.put("type", TokenType.ACCESS);
-        return createToken(claims, now, accessTokenValidTime);
+        return createToken(claims, now, accessTokenValidTimeMillis);
     }
 
     private String createRefreshToken(Claims claims, Date now) {
         claims.put("type", TokenType.REFRESH);
-        return createToken(claims, now, refreshTokenValidTime);
+        return createToken(claims, now, refreshTokenValidTimeMillis);
     }
 
     private String createToken(Claims claims, Date now, Long validTime) {
