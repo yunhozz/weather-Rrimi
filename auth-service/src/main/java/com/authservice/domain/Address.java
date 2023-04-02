@@ -12,6 +12,14 @@ public class Address {
 
     private String parentRegion;
     private String childRegion;
-    private int nx;
-    private int ny;
+
+    public Address(String parentRegion, String childRegion) {
+        this.parentRegion = parentRegion;
+        this.childRegion = childRegion;
+    }
+
+    public void changeInfo(String parentRegion, String childRegion) {
+        this.parentRegion = parentRegion;
+        this.childRegion = childRegion;
+    }
 }
