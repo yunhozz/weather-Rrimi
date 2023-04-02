@@ -2,6 +2,7 @@ package com.authservice.application.provider;
 
 import com.authservice.application.exception.RedisDataNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
@@ -11,10 +12,15 @@ import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
-public class RedisProvider {
+public class RedisProvider implements InitializingBean {
 
     private final RedisTemplate<String, Object> redisTemplate;
-    private final ValueOperations<String, Object> ops = redisTemplate.opsForValue();
+    private ValueOperations<String, Object> ops;
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        ops = redisTemplate.opsForValue();
+    }
 
     public void setData(String key, Object value, long timeMillis) {
         ops.set(key, value, Duration.ofMillis(timeMillis));
