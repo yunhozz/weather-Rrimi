@@ -2,7 +2,7 @@ package com.authservice.application.provider;
 
 import com.authservice.common.enums.Role;
 import com.authservice.common.enums.TokenType;
-import com.authservice.common.security.session.UserDetailsServiceImpl;
+import com.authservice.common.security.session.UserDetailsCustomService;
 import com.authservice.dto.response.JwtTokenResponseDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -39,7 +39,7 @@ public class JwtProvider {
     @Value("${app.jwt.secret}")
     private String secret;
 
-    private final UserDetailsServiceImpl userDetailsService;
+    private final UserDetailsCustomService userDetailsService;
 
     public JwtTokenResponseDto createJwtToken(String email, Set<Role> roles) {
         Claims claims = Jwts.claims().setSubject(email);
@@ -51,7 +51,13 @@ public class JwtProvider {
 
         String accessToken = createAccessToken(claims, now);
         String refreshToken = createRefreshToken(claims, now);
-        return new JwtTokenResponseDto(accessToken, refreshToken, refreshTokenValidTimeMillis);
+        return JwtTokenResponseDto.builder()
+                .grantType("Bearer")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .accessTokenValidTime(accessTokenValidTimeMillis)
+                .refreshTokenValidTime(refreshTokenValidTimeMillis)
+                .build();
     }
 
     public Authentication getAuthentication(String token) {
