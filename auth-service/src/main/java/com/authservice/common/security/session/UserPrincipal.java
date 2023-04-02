@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Getter
-public class UserDetailsImpl implements UserDetails {
+public class UserPrincipal implements UserDetails {
 
     private final String userId; // random UUID
     private final String email;
@@ -21,7 +21,7 @@ public class UserDetailsImpl implements UserDetails {
     private final Set<Role> roles;
     private final Provider provider;
 
-    public UserDetailsImpl(User user) {
+    public UserPrincipal(User user) {
         this.userId = user.getUserId();
         this.email = user.getEmail();
         this.name = user.getName();
