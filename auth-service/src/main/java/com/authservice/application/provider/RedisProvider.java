@@ -22,8 +22,8 @@ public class RedisProvider implements InitializingBean {
         ops = redisTemplate.opsForValue();
     }
 
-    public void setData(String key, Object value, long timeMillis) {
-        ops.set(key, value, Duration.ofMillis(timeMillis));
+    public void setData(String key, Object value, Duration duration) {
+        ops.set(key, value, duration);
     }
 
     public Object getData(String key) {
@@ -31,8 +31,9 @@ public class RedisProvider implements InitializingBean {
                 .orElseThrow(RedisDataNotFoundException::new);
     }
 
-    public void updateData(String key, Object newValue) {
+    public void updateData(String key, Object newValue, Duration duration) {
         ops.getAndSet(key, newValue);
+        ops.getAndExpire(key, duration);
     }
 
     public void deleteData(String key) {
