@@ -17,6 +17,8 @@ public class RedisProvider implements InitializingBean {
     private final RedisTemplate<String, Object> redisTemplate;
     private ValueOperations<String, Object> ops;
 
+    public final static String LOGOUT_STATUS = "logout";
+
     @Override
     public void afterPropertiesSet() throws Exception {
         ops = redisTemplate.opsForValue();

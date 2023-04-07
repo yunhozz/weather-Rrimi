@@ -66,6 +66,10 @@ public class User extends BaseEntity {
         return this.password.equals(password);
     }
 
+    public void changePassword(String password) {
+        this.password = password;
+    }
+
     public void changeAddress(String parent, String child) {
         address.changeInfo(parent, child);
     }
